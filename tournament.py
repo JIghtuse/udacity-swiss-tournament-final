@@ -17,8 +17,6 @@ def deleteMatches():
     cursor = connection.cursor()
 
     cursor.execute("delete from matches;")
-    # Reset player standings
-    cursor.execute("update players set matches = 0, wins = 0;")
 
     connection.commit()
     connection.close()
@@ -60,8 +58,7 @@ def registerPlayer(name):
     connection = connect()
     cursor = connection.cursor()
 
-    cursor.execute("insert into players (name,wins,matches) values (%s,0,0)",
-                   (name,))
+    cursor.execute("insert into players (name) values (%s)", (name,))
 
     connection.commit()
     connection.close()
@@ -83,9 +80,8 @@ def playerStandings():
     connection = connect()
     cursor = connection.cursor()
 
-    # Standings are represented by players table,
-    # so just return data ordered by wins
-    query = "select id, name, wins, matches from players order by wins desc;"
+    # Standings are represented by player_standings view, so just get it
+    query = "select * from player_standings;"
     cursor.execute(query)
     result = cursor.fetchall()
 
@@ -107,15 +103,6 @@ def reportMatch(winner, loser):
     # Store match data
     query = "insert into matches (winner, loser) values (%s,%s)"
     cursor.execute(query, (winner, loser))
-
-    # Increment winner number of wins and matches
-    query = """update players set wins = wins + 1,
-               matches = matches + 1 where id = (%s)"""
-    cursor.execute(query, (winner,))
-
-    # Increment loser number of matches
-    query = "update players set matches = matches + 1 where id = (%s)"
-    cursor.execute(query, (loser,))
 
     connection.commit()
     connection.close()
@@ -139,8 +126,9 @@ def swissPairings():
     connection = connect()
     cursor = connection.cursor()
 
-    # Get players ordered by number of wins
-    cursor.execute("select id, name from players order by wins desc;")
+    # Needed information is in player_standings view, just filter it
+    query = "select id, name from player_standings;"
+    cursor.execute(query)
     result = cursor.fetchall()
 
     connection.commit()
@@ -148,7 +136,7 @@ def swissPairings():
 
     # transforms
     # [(id1, name1), (id2, name2), ...]
-    # to
+    # into
     # [(id1, name1, id2, name2), ...]
     pairings = [a + b for a, b in zip(result[::2], result[1::2])]
     return pairings
