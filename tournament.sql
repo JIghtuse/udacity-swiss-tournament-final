@@ -1,3 +1,6 @@
+-- tables
+
+
 create table players(
     id serial primary key,
     name text);
@@ -5,12 +8,12 @@ create table players(
 -- references players to keep winner and loser for every match
 create table matches(
     id serial primary key,
-    winner integer,
-    loser integer,
-    foreign key (winner) references players(id),
-    foreign key (loser) references players(id));
+    winner serial references players(id),
+    loser serial references players(id));
+
 
 -- views to simplify queries
+
 
 -- player id and number of match wins
 create view win_counts as
