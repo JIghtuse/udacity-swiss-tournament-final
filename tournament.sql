@@ -1,3 +1,10 @@
+-- automate database re-creation
+
+\c postgres;
+drop database if exists tournament;
+create database tournament;
+\c tournament;
+
 -- tables
 
 
@@ -8,8 +15,8 @@ create table players(
 -- references players to keep winner and loser for every match
 create table matches(
     id serial primary key,
-    winner serial references players(id),
-    loser serial references players(id));
+    winner integer references players(id),
+    loser integer references players(id));
 
 
 -- views to simplify queries

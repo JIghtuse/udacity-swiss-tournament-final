@@ -3,18 +3,23 @@
 # tournament.py -- implementation of a Swiss-system tournament
 #
 
+import logging
 import psycopg2
 
 
-def connect():
+def connect(database_name="tournament"):
     """Connect to the PostgreSQL database.  Returns a database connection."""
-    return psycopg2.connect("dbname=tournament")
+    try:
+        db = psycopg2.connect("dbname={}".format(database_name))
+        cursor = db.cursor()
+        return db, cursor
+    except:
+        logging.critical("Cannot connect to database {}".format(database_name))
 
 
 def deleteMatches():
     """Remove all the match records from the database."""
-    connection = connect()
-    cursor = connection.cursor()
+    connection, cursor = connect()
 
     cursor.execute("delete from matches;")
 
@@ -24,8 +29,7 @@ def deleteMatches():
 
 def deletePlayers():
     """Remove all the player records from the database."""
-    connection = connect()
-    cursor = connection.cursor()
+    connection, cursor = connect()
 
     cursor.execute("delete from players;")
 
@@ -35,15 +39,14 @@ def deletePlayers():
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    connection = connect()
-    cursor = connection.cursor()
+    connection, cursor = connect()
 
     cursor.execute("select count(id) from players;")
-    result = cursor.fetchall()
+    players_count = cursor.fetchone()
 
     connection.commit()
     connection.close()
-    return result[0][0]
+    return players_count[0]
 
 
 def registerPlayer(name):
@@ -55,10 +58,11 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
-    connection = connect()
-    cursor = connection.cursor()
+    connection, cursor = connect()
 
-    cursor.execute("insert into players (name) values (%s)", (name,))
+    query = "insert into players (name) values (%s)"
+    query_params = (name,)
+    cursor.execute(query, query_params)
 
     connection.commit()
     connection.close()
@@ -77,17 +81,16 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
-    connection = connect()
-    cursor = connection.cursor()
+    connection, cursor = connect()
 
     # Standings are represented by player_standings view, so just get it
     query = "select * from player_standings;"
     cursor.execute(query)
-    result = cursor.fetchall()
+    standings = cursor.fetchall()
 
     connection.commit()
     connection.close()
-    return result
+    return standings
 
 
 def reportMatch(winner, loser):
@@ -97,12 +100,12 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
-    connection = connect()
-    cursor = connection.cursor()
+    connection, cursor = connect()
 
     # Store match data
     query = "insert into matches (winner, loser) values (%s,%s)"
-    cursor.execute(query, (winner, loser))
+    query_params = (winner, loser)
+    cursor.execute(query, query_params)
 
     connection.commit()
     connection.close()
@@ -123,13 +126,12 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
-    connection = connect()
-    cursor = connection.cursor()
+    connection, cursor = connect()
 
     # Needed information is in player_standings view, just filter it
     query = "select id, name from player_standings;"
     cursor.execute(query)
-    result = cursor.fetchall()
+    standings = cursor.fetchall()
 
     connection.commit()
     connection.close()
@@ -138,5 +140,5 @@ def swissPairings():
     # [(id1, name1), (id2, name2), ...]
     # into
     # [(id1, name1, id2, name2), ...]
-    pairings = [a + b for a, b in zip(result[::2], result[1::2])]
+    pairings = [a + b for a, b in zip(standings[::2], standings[1::2])]
     return pairings
