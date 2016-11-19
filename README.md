@@ -35,20 +35,12 @@ name (`username` in following examples):
         # systemctl start postgresql
         # su postgres
         bash-4.3$ psql
-        postgres=# create user username;
+        postgres=# create user username createdb;
 
-3. As PostgreSQL account create a database `tournament`, owned by your user
-account:
+3. As your user account execute commands with psql from file "tournament.sql"
+to create database and its tables:
 
-        # su postgres
-        $ psql
-        postgres=# create database tournament owner username ;
-
-4. As your user account connect to database and execute commands from
-file "tournament.sql" to create database tables:
-
-        $ psql tournament
-        tournament=> \i tournament.sql
+        $ psql -f tournament.sql postgres
 
 # Running
 
